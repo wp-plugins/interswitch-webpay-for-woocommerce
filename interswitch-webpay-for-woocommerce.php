@@ -532,8 +532,11 @@ function essl_wc_interswitch_webpay_init() {
 		if( is_order_received_page() &&  ( 'essl_webpay_gateway' == $payment_method ) ){
 
 			$notification 		= get_post_meta( $order_id, '_essl_interswitch_wc_message', true );
-			$message 			= $notification['message'];
-			$message_type 		= $notification['message_type'];
+			  if(isset($notification['message'])){
+                $message 			= $notification['message'];
+                $message_type 		= $notification['message_type'];
+            }
+			
 
 			delete_post_meta( $order_id, '_essl_interswitch_wc_message' );
 
@@ -589,12 +592,12 @@ function essl_wc_interswitch_webpay_init() {
 	/**
  	* Add Webpay Gateway to WC
  	**/
-	function wc_add_webay_gateway($methods) {
+	function wc_add_iswebay_gateway($methods) {
 		$methods[] = 'WC_Essl_Webpay_Gateway';
 		return $methods;
 	}
 
-	add_filter('woocommerce_payment_gateways', 'wc_add_webay_gateway' );
+	add_filter('woocommerce_payment_gateways', 'wc_add_iswebay_gateway' );
 
 
 	/**
