@@ -2,7 +2,7 @@
 Contributors: myeverlasting
 Tags: woocommerce, payment gateway, mastercard, visa cards, interswitch, verve cards, verve, nigeria, webpay, ecommerce, essl
 Requires at least: 3.5
-Tested up to: 4.1
+Tested up to: 4.3
 Stable tag: 1.0.1
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
