@@ -506,7 +506,7 @@ function essl_wc_interswitch_webpay_init() {
                 
 
 	    /**
-	     * Display the Transaction Reference on the payment confirmation page.
+	     * Display the Transaction Reference on the payment confirmation page for all transactions.
 	    **/
 		function display_transaction_id(){
 			$order_id = absint( get_query_var( 'order-pay' ) );
