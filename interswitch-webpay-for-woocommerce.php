@@ -289,158 +289,165 @@ function essl_wc_interswitch_webpay_init() {
 			echo $this->generate_webpay_form( $order );
 		}
 
+		      /**
+                 * Verify a successful Payment!
+                 **/
+                function check_webpay_response(){
 
-		/**
-		 * Verify a successful Payment!
-		**/
-		function check_webpay_response( $posted ){
-			global $woocommerce;
+                    if( isset( $_POST['txnref'] ) || isset ($_REQUEST['txnRef'])){
 
-			if( isset( $_POST['txnref'] ) ){
+        				if( isset($_POST['txnref'])){
+        				$txnref = $_POST['txnref'];
 
-				$txnref 		= $_POST['txnref'];
-				$order_details 	= explode('_', $txnref);
-				$txn_ref 		= $order_details[0];
-				$order_id 		= $order_details[1];
+        				}
+        				if(isset($_REQUEST['txnRef'])){
+        				$txnref = $_REQUEST['txnRef'];
 
-				$order_id 		= (int) $order_id;
+        				}
+                        $order_details 	= explode('_', $txnref);
+                        $txn_ref 		= $order_details[0];
+                        $order_id 		= $order_details[1];
 
-		        $order 			= new WC_Order($order_id);
-		        $order_total	= $order->get_total();
+                        $order_id 		= (int) $order_id;
 
-		        $total          = $order_total * 100;
+                        $order 			= new WC_Order($order_id);
+                        $order_total	= $order->get_total();
 
-		        $response       = $this->essl_webpay_transaction_details( $txnref, $total);
+                        $total          = $order_total * 100;
 
-				$response_code 	= $response -> ResponseCode;
-				$amount_paid    = $response ->Amount / 100;
-				$response_desc  = $response ->ResponseDescription;
+                        $response       = $this->essl_webpay_transaction_details( $txnref, $total);
 
-				// after payment hook
-                do_action('essl_wc_webpay_after_payment', $_POST, $response );
+                        $response_code 	= $response -> ResponseCode;
+                        $amount_paid    = $response ->Amount / 100;
+                        $response_desc  = $response ->ResponseDescription;
 
-				//process a successful transaction
-				if( '00' == $response_code){
+                        // after payment hook
+                        do_action('essl_wc_webpay_after_payment', $_POST, $response );
 
-					// check if the amount paid is equal to the order amount.
-					if($order_total != $amount_paid)
-					{
+                        //process a successful transaction
+                        if( '00' == $response_code){
 
-		                //Update the order status
-						$order->update_status('on-hold', '');
+                            // check if the amount paid is equal to the order amount.
+                            if($order_total != $amount_paid)
+                            {
 
-						//Error Note
-						$message = 'Thank you for your order.<br />Transaction was successful, however, amount is inconsistent.<br />Order is on-hold.<br />Keep your transaction reference for resolutions.<br />Transaction Reference: '.$txnref;
-						$message_type = 'notice';
+                                //Update the order status
+                                $order->update_status('on-hold', '');
 
-						//Add Customer Order Note
-	                    $order->add_order_note( $message, 1 );
+                                //Error Note
+                                $message = 'Thank you for your order.<br />Transaction was successful, however, amount is inconsistent.<br />Order is on-hold.<br />Keep your transaction reference for resolutions.<br />Transaction Reference: '.$txnref;
+                                $message_type = 'notice';
 
-	                    //Add Admin Order Note
-	                    $order->add_order_note('Review order. <br />Order currently on hold.<br />Reason: Amount is inconsistent.<br />Amount Paid was &#8358; '.$amount_paid.' while the total order amount is &#8358; '.$order_total.'<br />Transaction Reference: '.$txnref);
+                                //Add Customer Order Note
+                                $order->add_order_note( $message, 1 );
 
-						// Reduce stock levels
-						$order->reduce_order_stock();
+                                //Add Admin Order Note
+                                $order->add_order_note('Review order. <br />Order currently on hold.<br />Reason: Amount is inconsistent.<br />Amount Paid was &#8358; '.$amount_paid.' while the total order amount is &#8358; '.$order_total.'<br />Transaction Reference: '.$txnref);
 
-						// Empty cart
-						$woocommerce->cart->empty_cart();
-					}
-					else
-					{
+                                // Reduce stock levels
+                                $order->reduce_order_stock();
 
-		                if($order->status == 'processing'){
-		                    $order->add_order_note('Payment Via Interswitch Webpay<br />Transaction Reference: '.$txnref);
+                                // Empty cart
+                                $woocommerce->cart->empty_cart();
+                            }
+                            else
+                            {
 
-		                    //Add customer order note
-		 					$order->add_order_note('Payment Received.<br />Processing order.<br />We will be shipping your order to you soon.<br /Transaction Reference: '.$txnref, 1);
+                                if($order->status == 'processing'){
+                                    $order->add_order_note('Payment Via Interswitch Webpay<br />Transaction Reference: '.$txnref);
 
-							// Reduce stock levels
-							$order->reduce_order_stock();
+                                    //Add customer order note
+                                    $order->add_order_note('Payment Received.<br />Processing order.<br />We will be shipping your order to you soon.<br /Transaction Reference: '.$txnref, 1);
 
-							// Empty cart
-							WC()->cart->empty_cart();
+                                    // Reduce stock levels
+                                    $order->reduce_order_stock();
 
-							$message = 'Thank you for your order.<br />Transaction was successful, payment received.<br />Order processing in progress.<br />Transaction Reference: '.$txnref;
-							$message_type = 'success';
-		                }
-		                else{
+                                    // Empty cart
+                                    WC()->cart->empty_cart();
 
-		                	if( $order->has_downloadable_item() ){
+                                    $message = 'Thank you for your order.<br />Transaction was successful, payment received.<br />Order processing in progress.<br />Transaction Reference: '.$txnref;
+                                    $message_type = 'success';
+                                }
+                                else{
 
-		                		//Update order status
-								$order->update_status( 'completed', 'Payment received, order is complete.' );
+                                    if( $order->has_downloadable_item() ){
 
-			                    //Add admin order note
-			                    $order->add_order_note('Payment Via Interswitch Webpay<br />Transaction Reference: '.$txnref);
+                                        //Update order status
+                                        $order->update_status( 'completed', 'Payment received, order is complete.' );
 
-			                    //Add customer order note
-			 					$order->add_order_note('Payment Received.<br />Your order is now complete.<br />Transaction Reference: '.$txnref, 1);
+                                        //Add admin order note
+                                        $order->add_order_note('Payment Via Interswitch Webpay<br />Transaction Reference: '.$txnref);
 
-								$message = 'Thank you for your order.<br />Transaction was successful, payment received.<br />Order is complete.<br />Transaction Reference: '.$txnref;
-								$message_type = 'success';
+                                        //Add customer order note
+                                        $order->add_order_note('Payment Received.<br />Your order is now complete.<br />Transaction Reference: '.$txnref, 1);
 
-		                	}
-		                	else{
+                                        $message = 'Thank you for your order.<br />Transaction was successful, payment received.<br />Order is complete.<br />Transaction Reference: '.$txnref;
+                                        $message_type = 'success';
 
-		                		//Update order status
-								$order->update_status( 'processing', 'Payment received, your order is currently being processed.' );
+                                    }
+                                    else{
 
-								//Add admin order noote
-			                    $order->add_order_note('Payment Via Interswitch Webpay<br />Transaction Reference: '.$txnref);
+                                        //Update order status
+                                        $order->update_status( 'processing', 'Payment received, your order is currently being processed.' );
 
-			                    //Add customer order note
-			 					$order->add_order_note('Payment Received.<br />order processing in progress.<br />We will be shipping your order to you soon.<br />Transaction Reference: '.$txnref, 1);
+                                        //Add admin order noote
+                                        $order->add_order_note('Payment Via Interswitch Webpay<br />Transaction Reference: '.$txnref);
 
-								$message = 'Thank you for your order.<br />Transaction was successful, payment received.<br />Order processing in progress.<br />Transaction Reference: '.$txnref;
-								$message_type = 'success';
-		                	}
+                                        //Add customer order note
+                                        $order->add_order_note('Payment Received.<br />order processing in progress.<br />We will be shipping your order to you soon.<br />Transaction Reference: '.$txnref, 1);
 
-							// Reduce stock levels
-							$order->reduce_order_stock();
+                                        $message = 'Thank you for your order.<br />Transaction was successful, payment received.<br />Order processing in progress.<br />Transaction Reference: '.$txnref;
+                                        $message_type = 'success';
+                                    }
 
-							// Empty cart
-							WC()->cart->empty_cart();
-		                }
-	                }
+                                    // Reduce stock levels
+                                    $order->reduce_order_stock();
 
-				}
-				else{
-					//process a failed transaction
-	            	$message = 	'Thank you for your order. <br />Transaction wasn\'t successful, payment wasn\'t received.<br />Reason: '. $response_desc.'<br />Transaction Reference: '.$txnref;
-					$message_type = 'error';
+                                    // Empty cart
+                                    WC()->cart->empty_cart();
+                                }
+                            }
 
-					//Add Customer Order Note
-                   	$order->add_order_note( $message, 1 );
+                        }
+                        else{
+                            //process a failed transaction
+                            $message = 	'Thank you for your order. <br />Transaction wasn\'t successful, payment wasn\'t received.<br />Reason: '. $response_desc.'<br />Transaction Reference: '.$txnref;
+                            $message_type = 'error';
 
-                    //Add Admin Order Note
-                  	$order->add_order_note( $message );
+                            //Add Customer Order Note
+                            $order->add_order_note( $message, 1 );
 
-	                //Update the order status
-					$order->update_status('failed', '');
-				}
-			}
-			else{
+                            //Add Admin Order Note
+                            $order->add_order_note( $message );
 
-            	$message = 	'Thank you for your order. <br />However, the transaction wasn\'t successful, payment wasn\'t received.';
-				$message_type = 'error';
+                            //Update the order status
+                            $order->update_status('failed', '');
+                        }
+                    }
+                    else{
 
-			}
+                        $message = 	'Thank you for your order. <br />However, the transaction wasn\'t successful, payment wasn\'t received.';
+                        $message_type = 'error';
 
-            $notification_message = array(
-            	'message'	=> $message,
-            	'message_type' => $message_type
-            );
+                    }
 
-			if ( version_compare( WOOCOMMERCE_VERSION, "2.2" ) >= 0 ) {
-				add_post_meta( $order_id, '_transaction_id', $txnref, true );
-			}
+                    $notification_message = array(
+                        'message'	=> $message,
+                        'message_type' => $message_type
+                    );
 
-			update_post_meta( $order_id, '_essl_interswitch_wc_message', $notification_message );
+                    if ( version_compare( WOOCOMMERCE_VERSION, "2.2" ) >= 0 ) {
+                        add_post_meta( $order_id, '_transaction_id', $txnref, true );
+                    }
 
-            $redirect_url = esc_url( $this->get_return_url( $order ) );
-            wp_redirect( $redirect_url );
-            exit;
-		}
+                    update_post_meta( $order_id, '_essl_interswitch_wc_message', $notification_message );
+
+                    $redirect_url = esc_url( $this->get_return_url( $order ) );
+                    wp_redirect( $redirect_url );
+                    exit;
+                }
+
+
 
 		/**
 	 	* Query a transaction details
@@ -451,7 +458,7 @@ function essl_wc_interswitch_webpay_init() {
 			$mac_key        = $this->mac_key;
 
 			if ( 'yes' == $this->testmode ) {
-        		$query_url = 'http://stageserv.interswitchng.com/test_paydirect/api/v1/gettransaction.json';
+        		$query_url = 'https://stageserv.interswitchng.com/test_paydirect/api/v1/gettransaction.json';
 			} else {
 				$query_url = 'https://webpay.interswitchng.com/paydirect/api/v1/gettransaction.json';
 			}
@@ -523,28 +530,29 @@ function essl_wc_interswitch_webpay_init() {
 	}
 
 
-	function essl_wc_interswitch_message(){
+	    function essl_wc_interswitch_message(){
+    		if( get_query_var('order-received')){
+            $order_id 		= absint( get_query_var( 'order-received' ) );
+            $order 			= new WC_Order( $order_id );
+            $payment_method =  $order->payment_method;
 
-		$order_id 		= absint( get_query_var( 'order-received' ) );
-		$order 			= new WC_Order( $order_id );
-		$payment_method =  $order->payment_method;
 
-		if( is_order_received_page() &&  ( 'essl_webpay_gateway' == $payment_method ) ){
 
-			$notification 		= get_post_meta( $order_id, '_essl_interswitch_wc_message', true );
-			  if(isset($notification['message'])){
-                $message 			= $notification['message'];
-                $message_type 		= $notification['message_type'];
+
+            if( is_order_received_page() &&  ( 'essl_webpay_gateway' == $payment_method ) ){
+
+                $notification 		= get_post_meta( $order_id, '_essl_interswitch_wc_message', true );
+                $message 			= isset($notification['message']) ? $notification['message']:'';
+                $message_type 		= isset($notification['message_type']) ? $notification['message_type']:'';
+
+                delete_post_meta( $order_id, '_essl_interswitch_wc_message' );
+
+                if( ! empty( $message) ){
+                    wc_add_notice( $message, $message_type );
+                }
             }
-			
-
-			delete_post_meta( $order_id, '_essl_interswitch_wc_message' );
-
-			if( ! empty( $message) ){
-				wc_add_notice( $message, $message_type );
-			}
-		}
-	}
+    		}
+        }
         //transactions log
         
         add_action('admin_menu', 'isw_tranactions_log');
